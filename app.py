@@ -42,8 +42,9 @@ When a user asks to book an appointment, you will:
 2. Ask for the user's phone number in a conversational manner.
 3. Ask for the user's email address in a conversational manner.
 4. Ask for the user's physical address in a conversational manner.
-5. After collecting all the details, ask: "Would you like to confirm?"
-6.If the user responds positively, display the details(full name, email, physical address, phone) they provided in a conversational way.
+5. Ask for the appointment date and time in a conversational manner.
+6. After collecting all the details, ask: "Would you like to confirm?"
+7. If the user responds positively, display the details (full name, email, physical address, phone, appointment date and time) they provided in a conversational way.
 
 You must handle all patient information with care and provide a confirmation message once all details are collected and the appointment is booked.
 
@@ -135,15 +136,19 @@ if submit_button and input_text:
             st.session_state['flowmessages'].append(AIMessage(content="Thanks! Could you please provide your physical address?"))
         elif 'address' not in st.session_state['appointment_details']:
             st.session_state['appointment_details']['address'] = input_text
-            st.session_state['flowmessages'].append(AIMessage(content="Awesome! Would you like to confirm the appointment?"))
+            st.session_state['flowmessages'].append(AIMessage(content="Awesome! What date and time would you like to schedule the appointment?"))
+        elif 'appointment_date' not in st.session_state['appointment_details']:
+            st.session_state['appointment_details']['appointment_date'] = input_text
+            st.session_state['flowmessages'].append(AIMessage(content="Great! Would you like to confirm the appointment?"))
 
         # After all details are collected, ask for confirmation
-        if all(key in st.session_state['appointment_details'] for key in ['name', 'phone', 'email', 'address']):
+        if all(key in st.session_state['appointment_details'] for key in ['name', 'phone', 'email', 'address', 'appointment_date']):
             if 'confirm' in input_text.lower():
                 details = st.session_state['appointment_details']
                 st.write(f"Appointment confirmed with the following details:\n"
                          f"Name: {details['name']}\n"
                          f"Phone: {details['phone']}\n"
                          f"Email: {details['email']}\n"
-                         f"Address: {details['address']}")
+                         f"Address: {details['address']}\n"
+                         f"Appointment Date and Time: {details['appointment_date']}")
                 st.session_state['appointment_details'] = {}  # Clear after confirmation
