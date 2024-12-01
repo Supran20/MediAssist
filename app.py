@@ -33,7 +33,22 @@ st.header("Welcome to MediAssist - Your Virtual Health Assistant")
 # Initialize session state for conversation
 if 'flowmessages' not in st.session_state:
     st.session_state['flowmessages'] = [
-        SystemMessage(content="You are MediAssist, an AI-powered virtual health assistant. You are here to provide helpful, accurate, and empathetic responses to patients and visitors. You can answer questions about the hospital's services, departments, staff, and general health information.")
+        SystemMessage(content=""" 
+You are MediAssist, an AI-powered virtual health assistant. You are here to provide helpful, accurate, and empathetic responses to patients and visitors. 
+You can answer questions about the hospital's services, departments, staff, and general health information, including medicine and disease-related queries.
+
+When a user asks to book an appointment, you will:
+1. Ask for the user's full name in a conversational manner.
+2. Ask for the user's phone number in a conversational manner.
+3. Ask for the user's email address in a conversational manner.
+4. Ask for the user's physical address in a conversational manner.
+5. After collecting all the details, ask: "Would you like to confirm?"
+6.If the user responds positively, display the details(full name, email, physical address, phone) they provided in a conversational way.
+
+You must handle all patient information with care and provide a confirmation message once all details are collected and the appointment is booked.
+
+If the user is not asking to book an appointment, do not prompt for these details.
+""")
     ]
 
 # Initialize the Ollama LLM with the "llama2" model
@@ -93,10 +108,42 @@ st.divider()  # Add a divider for better UI
 input_text = st.text_input("Type your message here:", key="input_text", label_visibility="collapsed")
 submit_button = st.button("Send")
 
+# Appointment details state
+if 'appointment_details' not in st.session_state:
+    st.session_state['appointment_details'] = {}
+
+# Handle the flow of conversation for appointment booking
 if submit_button and input_text:
     with st.spinner("Thinking..."):
         response = get_chatmodel_response(input_text, context=document_context if uploaded_file else None)
+    
     # Display the new messages immediately
     with chat_container:  # Ensure new messages appear at the top
         st.chat_message("user").write(input_text)
         st.chat_message("assistant").write(response)
+    
+    # Handling appointment details collection
+    if "book an appointment" in input_text.lower():
+        if 'name' not in st.session_state['appointment_details']:
+            st.session_state['appointment_details']['name'] = input_text
+            st.session_state['flowmessages'].append(AIMessage(content="Great! Could you please provide your phone number?"))
+        elif 'phone' not in st.session_state['appointment_details']:
+            st.session_state['appointment_details']['phone'] = input_text
+            st.session_state['flowmessages'].append(AIMessage(content="Got it! Could you please share your email address?"))
+        elif 'email' not in st.session_state['appointment_details']:
+            st.session_state['appointment_details']['email'] = input_text
+            st.session_state['flowmessages'].append(AIMessage(content="Thanks! Could you please provide your physical address?"))
+        elif 'address' not in st.session_state['appointment_details']:
+            st.session_state['appointment_details']['address'] = input_text
+            st.session_state['flowmessages'].append(AIMessage(content="Awesome! Would you like to confirm the appointment?"))
+
+        # After all details are collected, ask for confirmation
+        if all(key in st.session_state['appointment_details'] for key in ['name', 'phone', 'email', 'address']):
+            if 'confirm' in input_text.lower():
+                details = st.session_state['appointment_details']
+                st.write(f"Appointment confirmed with the following details:\n"
+                         f"Name: {details['name']}\n"
+                         f"Phone: {details['phone']}\n"
+                         f"Email: {details['email']}\n"
+                         f"Address: {details['address']}")
+                st.session_state['appointment_details'] = {}  # Clear after confirmation
